@@ -1,19 +1,37 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"webserver/controller"
+	"webserver/config"
+	"webserver/model"
+	"webserver/router"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
 
-	router := mux.NewRouter()
+	mainRouter := mux.NewRouter()
 
-	router.HandleFunc("/", controller.HomeController).Methods("GET")
+	router.BookRoutes(mainRouter)
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	router.AuthorRoutes(mainRouter)
+
+	// middleware , quering database;
+
+	databaseInit()
+
+	log.Fatal(http.ListenAndServe(":8080", mainRouter))
+
+}
+
+func databaseInit() {
+	fmt.Println("INITIATING DATABASE CONNECTION")
+	config.Connect()
+	database := config.GetDatabase()
+	database.AutoMigrate(&model.Books{}, &model.Author{})
+	fmt.Println("DATABASE CONNECTION INITIATED")
 
 }
