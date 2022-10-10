@@ -2,22 +2,19 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"webserver/config"
 	"webserver/model"
 )
 
+var authQuery = model.AutherQueries{}
+
 func CreateAuthor(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 
 	var requestBody, existAuthor model.Author
 
-	db := config.GetDatabase()
-
 	json.NewDecoder(r.Body).Decode(&requestBody)
 
-	result := db.Where("name=?", requestBody.Name).Find(&existAuthor)
+	_, result := authQuery.GetAuthor(requestBody.Name)
 
 	if result.Error != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -28,7 +25,7 @@ func CreateAuthor(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 
-		result := db.Create(&requestBody)
+		_, result := authQuery.CreateAuthor(&requestBody)
 
 		if result.Error != nil {
 			w.WriteHeader(http.StatusConflict)
@@ -40,6 +37,35 @@ func CreateAuthor(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	fmt.Println(requestBody, result.RowsAffected, result.Error, "create api")
+}
 
+func GetAuthors(w http.ResponseWriter, r *http.Request) {
+
+	authorsList, queryResult := authQuery.GetAuthors()
+
+	if queryResult.Error != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ResponseBuilder("something went wrong", http.StatusUnauthorized, queryResult.Error))
+	} else {
+
+		json.NewEncoder(w).Encode(model.ResponseBuilder("author list fetched successfully", http.StatusOK, &authorsList))
+
+	}
+}
+
+func EditAuthor(w http.ResponseWriter, r *http.Request) {
+
+	var requestBody model.Author
+
+	json.NewDecoder(r.Body).Decode(&requestBody)
+
+	_, result := authQuery.EditAuthor(&requestBody)
+
+	if result.Error != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ResponseBuilder("something went wrong", http.StatusUnauthorized, result.Error))
+	} else {
+		json.NewEncoder(w).Encode(model.ResponseBuilder("author Detail updated successfully", http.StatusOK, "successfully updated"))
+
+	}
 }
